@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payments Management</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { color: white; text-align: center; margin-bottom: 20px; }
+        .nav {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .nav a {
+            background: white;
+            color: #667eea;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .form-section, .table-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        button:hover { background: #764ba2; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #667eea;
+            color: white;
+        }
+        tr:hover { background: #f5f5f5; }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .status-PENDING { background: #ffc107; color: #000; }
+        .status-PROCESSING { background: #17a2b8; color: white; }
+        .status-COMPLETED { background: #28a745; color: white; }
+        .status-FAILED { background: #dc3545; color: white; }
+        .status-REFUNDED { background: #6c757d; color: white; }
+        .status-CANCELLED { background: #ff5722; color: white; }
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💳 Payments Management</h1>
+        <div class="nav">
+            <a href="/">Home</a>
+            <a href="/orders">Orders</a>
+            <a href="/deliveries">Deliveries</a>
+            <a href="/payments">Payments</a>
+        </div>
+
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+        <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+        <div class="form-section">
+            <h2>Create New Payment</h2>
+            <form th:action="@{/payments}" th:object="${paymentRequest}" method="post">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Order ID *</label>
+                        <select th:field="*{orderId}" required>
+                            <option value="">Select Order</option>
+                            <option th:each="order : ${orders}" 
+                                    th:value="${order.id}" 
+                                    th:text="${'Order #' + order.id + ' - $' + #numbers.formatDecimal(order.totalAmount, 1, 2)}"></option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Amount *</label>
+                        <input type="number" step="0.01" th:field="*{amount}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Method *</label>
+                        <select th:field="*{method}" required>
+                            <option value="">Select Method</option>
+                            <option th:each="m : ${T(com.example.demo.model.Payment.PaymentMethod).values()}"
+                                    th:value="${m}"
+                                    th:text="${m}"></option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Gateway</label>
+                        <input type="text" th:field="*{paymentGateway}" placeholder="e.g., Stripe, PayPal">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <input type="text" th:field="*{notes}" placeholder="Optional notes">
+                </div>
+                <button type="submit">Create Payment</button>
+            </form>
+        </div>
+
+        <div class="table-section">
+            <h2>All Payments</h2>
+            <table th:if="${!payments.isEmpty()}">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Order ID</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>Transaction ID</th>
+                        <th>Created At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="payment : ${payments}">
+                        <td th:text="${payment.id}"></td>
+                        <td th:text="${payment.orderId}"></td>
+                        <td th:text="${'$' + #numbers.formatDecimal(payment.amount, 1, 2)}"></td>
+                        <td th:text="${payment.method}"></td>
+                        <td>
+                            <span th:classappend="'status-' + ${payment.status}" class="status-badge" 
+                                  th:text="${payment.status}"></span>
+                        </td>
+                        <td th:text="${payment.transactionId ?: 'N/A'}" style="font-family: monospace;"></td>
+                        <td th:text="${#temporals.format(payment.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
+                        <td>
+                            <form th:action="@{'/payments/' + ${payment.id} + '/status'}" method="post" style="display: inline;">
+                                <select name="status" onchange="this.form.submit()" style="width: auto; padding: 5px;">
+                                    <option th:each="s : ${T(com.example.demo.model.Payment.PaymentStatus).values()}"
+                                            th:value="${s}"
+                                            th:text="${s}"
+                                            th:selected="${payment.status == s}"></option>
+                                </select>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <p th:if="${payments.isEmpty()}" style="text-align: center; color: #666; padding: 20px;">
+                No payments found. Create your first payment above.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
