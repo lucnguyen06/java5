@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<header class="navbar">
+    <a th:href="@{/}" class="logo" style="text-decoration: none; color: inherit;">Xiaomi Store</a>
+
+    <nav>
+        <a th:href="@{/}">Trang chủ</a>
+        <a th:href="@{/product/list}">Sản phẩm</a>
+        <a th:href="@{/contact}">Liên hệ</a>
+    </nav>
+
+    <div class="nav-actions">
+        <span th:if="${currentUser != null}" class="user-info me-3">
+            👤 <a th:href="@{/account/settings}" class="text-decoration-none" style="color: inherit;">
+                <strong th:text="${currentUser.username}"></strong>
+                <span th:text="'(' + ${currentUser.role} + ')'" class="text-muted"></span>
+            </a>
+        </span>
+        <a th:if="${currentUser == null}" th:href="@{/login}" class="btn">Đăng nhập</a>
+        <a th:if="${currentUser != null}" th:href="@{/logout}" class="btn">Đăng xuất</a>
+        <a th:href="@{/cart/view}" class="btn cart">🛒 Giỏ hàng</a>
+    </div>
+</header>

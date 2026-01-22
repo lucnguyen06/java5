@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deliveries Management</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { color: white; text-align: center; margin-bottom: 20px; }
+        .nav {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .nav a {
+            background: white;
+            color: #667eea;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .form-section, .table-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        button:hover { background: #764ba2; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #667eea;
+            color: white;
+        }
+        tr:hover { background: #f5f5f5; }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .status-PENDING { background: #ffc107; color: #000; }
+        .status-PREPARING { background: #17a2b8; color: white; }
+        .status-IN_TRANSIT { background: #007bff; color: white; }
+        .status-OUT_FOR_DELIVERY { background: #ff9800; color: white; }
+        .status-DELIVERED { background: #28a745; color: white; }
+        .status-FAILED { background: #dc3545; color: white; }
+        .status-RETURNED { background: #6c757d; color: white; }
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚚 Deliveries Management</h1>
+        <div class="nav">
+            <a href="/">Home</a>
+            <a href="/orders">Orders</a>
+            <a href="/deliveries">Deliveries</a>
+            <a href="/payments">Payments</a>
+        </div>
+
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+        <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+        <div class="form-section">
+            <h2>Create New Delivery</h2>
+            <form th:action="@{/deliveries}" th:object="${deliveryRequest}" method="post">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Order ID *</label>
+                        <select th:field="*{orderId}" required>
+                            <option value="">Select Order</option>
+                            <option th:each="order : ${orders}" 
+                                    th:value="${order.id}" 
+                                    th:text="${'Order #' + order.id + ' - ' + order.customerName}"></option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Carrier</label>
+                        <input type="text" th:field="*{carrier}" placeholder="e.g., DHL, FedEx">
+                    </div>
+                    <div class="form-group">
+                        <label>Shipping Cost</label>
+                        <input type="number" step="0.01" th:field="*{shippingCost}">
+                    </div>
+                    <div class="form-group">
+                        <label>Estimated Delivery Date *</label>
+                        <input type="datetime-local" th:field="*{estimatedDeliveryDate}" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Shipping Address *</label>
+                    <input type="text" th:field="*{shippingAddress}" required>
+                </div>
+                <button type="submit">Create Delivery</button>
+            </form>
+        </div>
+
+        <div class="table-section">
+            <h2>All Deliveries</h2>
+            <table th:if="${!deliveries.isEmpty()}">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Order ID</th>
+                        <th>Tracking Number</th>
+                        <th>Status</th>
+                        <th>Carrier</th>
+                        <th>Estimated Delivery</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="delivery : ${deliveries}">
+                        <td th:text="${delivery.id}"></td>
+                        <td th:text="${delivery.orderId}"></td>
+                        <td th:text="${delivery.trackingNumber ?: 'N/A'}" style="font-family: monospace;"></td>
+                        <td>
+                            <span th:classappend="'status-' + ${delivery.status}" class="status-badge" 
+                                  th:text="${delivery.status}"></span>
+                        </td>
+                        <td th:text="${delivery.carrier ?: 'N/A'}"></td>
+                        <td th:text="${#temporals.format(delivery.estimatedDeliveryDate, 'yyyy-MM-dd HH:mm')}"></td>
+                        <td>
+                            <form th:action="@{'/deliveries/' + ${delivery.id} + '/status'}" method="post" style="display: inline;">
+                                <select name="status" onchange="this.form.submit()" style="width: auto; padding: 5px;">
+                                    <option th:each="s : ${T(com.example.demo.model.Delivery.DeliveryStatus).values()}"
+                                            th:value="${s}"
+                                            th:text="${s}"
+                                            th:selected="${delivery.status == s}"></option>
+                                </select>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <p th:if="${deliveries.isEmpty()}" style="text-align: center; color: #666; padding: 20px;">
+                No deliveries found. Create your first delivery above.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
